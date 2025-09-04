@@ -1,4 +1,3 @@
-# Vue Simulation
 
 一个简单的Vue模拟库，提供类似Vue的组件化开发体验。
 
