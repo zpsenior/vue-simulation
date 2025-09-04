@@ -92,7 +92,7 @@ export abstract class HTMLPanel extends HTMLBase {
             panel.style.top = this.cy + "px";
         }
     }
-    protected bindVars(_vars: Map<any, any>) { }
-    protected bindEvents(_events: Map<string, TriggerEvent>) { }
+    protected bindVars(_vars: Map<any, any>) { };
+    protected bindEvents(_events: Map<string, TriggerEvent>) { };
     protected abstract buildTemplate(): string;
 }
