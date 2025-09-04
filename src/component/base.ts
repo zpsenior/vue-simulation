@@ -1,7 +1,6 @@
 import { readXML } from "../dom/dom-reader";
 import { HTMLNode, RenderContext } from "../parser/template";
 
-
 export interface ProxyCache {
     readonly cache: WeakMap<any, any>;
     render(): void;
