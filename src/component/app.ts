@@ -1,3 +1,4 @@
+import { DOM } from "../dom/dom";
 import { readXML } from "../dom/dom-reader";
 import { OnEvent } from "../parser/expression";
 import { HTMLNode, MapRenderContext, RenderContext } from "../parser/template";
@@ -5,16 +6,6 @@ import { leafHtmlTag } from "../utils/base";
 import { loadTemplate } from "../utils/utils";
 import { App, deepProxy, Ref, RefImpl } from "./base";
 import { HTMLBaseBlockNode } from "./block";
-
-interface DOM {
-    name: string;
-    id?: string;
-    innerXml: string;
-    text?: string;
-    children?: DOM[];
-    getAttribute(name: string): string | undefined;
-    findChild(callback: (node: DOM) => DOM | undefined): DOM | undefined;
-}
 
 type AppConfig = {
     createComponents?: string[];
