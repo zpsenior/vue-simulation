@@ -1,210 +1,303 @@
-import { HTMLNode, RenderContext } from "../parser/template";
+import { MapRenderContext } from "../parser/template";
 
-export interface ProxyCache {
-    readonly cache: WeakMap<any, any>;
-    render(): void;
-}
-
-export interface VariableContainer {
-    /**
-     * 获取应用数据中的指定变量
-     * @param key 变量名
-     * @returns 变量值
-     */
+// 定义应用接口
+export interface App {
+    cache: WeakMap<any, any>;
     getVariable(key: string): any;
-    /**
-     * 设置应用数据中的指定变量
-     * @param key 变量名
-     * @param value 变量值
-     * @param render 是否在设置后立即渲染视图
-     */
     setVariable(key: string, value: any, render?: boolean): void;
-}
-
-export interface App extends ProxyCache, VariableContainer {
-    /**
-     * 批量设置应用数据并渲染视图
-     * @param kv 键值对对象
-     */
     setData(data: any): void;
-    /**
-     * 在容器中查询匹配指定选择器的第一个元素
-     * @param selector CSS选择器
-     * @returns 匹配的HTML元素或undefined
-     */
     querySelector(selector: string): HTMLElement | undefined;
-    /**
-     * 在容器中查询匹配指定选择器的所有元素
-     * @param selector CSS选择器
-     * @returns 匹配的HTML元素集合或undefined
-     */
     querySelectorAll(selector: string): NodeListOf<HTMLElement> | undefined;
-    /**
-     * 加载指定URL的模板文件
-     * @param urls 模板文件URL,可加载多个
-     * @returns 模板内容
-     */
     use(...urls: string[]): Promise<string>;
-    /**
-     * 将应用挂载到指定的DOM元素上
-     * @param root 挂载点，可以是DOM元素或选择器字符串
-     */
     mount(root: HTMLElement | string): void;
-    /**
-     * 渲染或更新应用视图
-     */
     render(): void;
     ref<T>(val: T): Ref<T>;
     reactive<T extends Object>(val: T): T;
 }
 
-export abstract class Ref<T> {
-    abstract get value(): T;
-    abstract set value(val: T);
+// 定义引用接口
+export interface Ref<T> {
+    value: T;
+    _isRef: boolean;
 }
 
-export class RefImpl<T> extends Ref<T> {
-    name: string = '';
-    private app: VariableContainer;
+// 实现引用类
+export class RefImpl<T> implements Ref<T> {
     private _value: T;
-    constructor(app: VariableContainer, val: T) {
-        super();
-        this.app = app;
-        this._value = val;
+    private _app: App;
+    public name: string = '';
+    public _isRef: boolean = true;
+
+    constructor(app: App, value: T) {
+        this._app = app;
+        this._value = value;
     }
-    get value() {
+
+    get value(): T {
         return this._value;
     }
+
     set value(val: T) {
-        if (this._value !== val) {
-            this._value = val;
-            this.app.setVariable(this.name, val, true);
+        this._value = val;
+        if (this.name && this._app) {
+            this._app.setVariable(this.name, this);
         }
     }
 }
 
-export function deepProxy(app: ProxyCache, val: any) {
-    if (!val || typeof val !== 'object') {
-        return val;
+// 深度代理对象，实现响应式
+export function deepProxy(app: App, obj: any): any {
+    // 如果是基本类型，直接返回
+    if (!obj || typeof obj !== 'object' || obj instanceof HTMLElement || obj instanceof Node) {
+        return obj;
     }
-    const cache = app.cache;
-    if (cache.has(val)) {
-        return cache.get(val);
+
+    // 如果是数组，处理数组的特殊方法
+    if (Array.isArray(obj)) {
+        const array = obj.map((item: any) => deepProxy(app, item));
+        return new Proxy(array, {
+            get(target, prop, receiver) {
+                const value = Reflect.get(target, prop, receiver);
+                
+                // 处理数组的方法
+                if (typeof value === 'function' && ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse'].includes(prop.toString())) {
+                    return function(...args: any[]) {
+                        const result = value.apply(target, args);
+                        // 对新添加的元素进行代理
+                        if (['push', 'unshift', 'splice'].includes(prop.toString())) {
+                            for (let i = 0; i < target.length; i++) {
+                                if (!app.cache.has(target[i])) {
+                                    target[i] = deepProxy(app, target[i]);
+                                }
+                            }
+                        }
+                        return result;
+                    };
+                }
+                
+                return value;
+            },
+            set(target, prop, value, receiver) {
+                const oldValue = Reflect.get(target, prop, receiver);
+                if (oldValue !== value) {
+                    const result = Reflect.set(target, prop, deepProxy(app, value), receiver);
+                    return result;
+                }
+                return true;
+            },
+            deleteProperty(target, prop) {
+                const result = Reflect.deleteProperty(target, prop);
+                return result;
+            }
+        });
     }
-    const proxy = new Proxy(val, {
-        get(target, prop) {
-            const value = Reflect.get(target, prop);
+
+    // 如果是普通对象，创建代理
+    const proxy = new Proxy(obj, {
+        get(target, prop, receiver) {
+            const value = Reflect.get(target, prop, receiver);
             return deepProxy(app, value);
         },
-        set(target, prop, value) {
-            const oldValue = Reflect.get(target, prop);
+        set(target, prop, value, receiver) {
+            const oldValue = Reflect.get(target, prop, receiver);
             if (oldValue !== value) {
-                const res = Reflect.set(target, prop, value);
-                if (res) {
-                    app.render();
-                } else {
-                    console.error(`set [${prop.toString()}] failed: `, target);
-                }
+                const result = Reflect.set(target, prop, deepProxy(app, value), receiver);
+                return result;
             }
-            return false;
+            return true;
+        },
+        deleteProperty(target, prop) {
+            const result = Reflect.deleteProperty(target, prop);
+            return result;
         }
     });
-    cache.set(val, proxy);
+
     return proxy;
 }
 
-export abstract class HTMLBase extends HTMLElement {
-    attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-        if (oldValue !== newValue) {
-            if (!this.updateAttribute(name, newValue)) {
-                this.setVariable(name, this.parseVariable(newValue));
+// 工具函数：检查是否是引用对象
+export function isRef(val: any): boolean {
+    return val && val._isRef === true;
+}
+
+// 工具函数：检查是否是响应式对象
+export function isReactive(val: any): boolean {
+    return val && typeof val === 'object' && val.__isReactive === true;
+}
+
+// 工具函数：获取原始对象
+export function toRaw<T>(val: T): T {
+    if (isRef(val)) {
+        return val.value;
+    }
+    if (isReactive(val)) {
+        return val.__raw || val;
+    }
+    return val;
+}
+
+// 工具函数：合并两个对象
+export function merge(target: any, source: any): any {
+    for (const key in source) {
+        if (source.hasOwnProperty(key)) {
+            if (target[key] && typeof target[key] === 'object' && typeof source[key] === 'object') {
+                target[key] = merge(target[key], source[key]);
+            } else {
+                target[key] = source[key];
             }
         }
-        if (this.parentElement) {
-            this.render();
-        }
     }
-    protected updateAttribute(_name: string, _value: string): boolean {
-        return false;
+    return target;
+}
+
+// 工具函数：防抖函数
+export function debounce(fn: Function, delay: number): Function {
+    let timer: number | null = null;
+    return function(this: any, ...args: any[]) {
+        if (timer) {
+            clearTimeout(timer);
+        }
+        timer = setTimeout(() => {
+            fn.apply(this, args);
+            timer = null;
+        }, delay);
+    };
+}
+
+// 工具函数：节流函数
+export function throttle(fn: Function, delay: number): Function {
+    let lastTime = 0;
+    return function(this: any, ...args: any[]) {
+        const now = Date.now();
+        if (now - lastTime >= delay) {
+            fn.apply(this, args);
+            lastTime = now;
+        }
+    };
+}
+
+// 工具函数：格式化日期
+export function formatDate(date: Date, format: string): string {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hour = date.getHours();
+    const minute = date.getMinutes();
+    const second = date.getSeconds();
+
+    return format
+        .replace('YYYY', year.toString())
+        .replace('MM', month.toString().padStart(2, '0'))
+        .replace('DD', day.toString().padStart(2, '0'))
+        .replace('HH', hour.toString().padStart(2, '0'))
+        .replace('mm', minute.toString().padStart(2, '0'))
+        .replace('ss', second.toString().padStart(2, '0'));
+}
+
+// 工具函数：深拷贝
+export function deepClone<T>(obj: T): T {
+    if (!obj || typeof obj !== 'object') {
+        return obj;
     }
 
-    private _context: RenderContext;
-    private _root: HTMLNode;
-    private _style: HTMLStyleElement;
-    private _html: HTMLElement | undefined;
-    private _shadowRoot: ShadowRoot;
-    constructor() {
-        super();
-        this._shadowRoot = this.attachShadow({ mode: 'open' });
-        this._style = document.createElement('style');
-        this.bindStyle(this._style);
-        this._shadowRoot.appendChild(this._style);
-        this._context = this.buildContext();
-        const dom = readXML(this.buildTemplate());
-        this._root = new HTMLNode(dom);
+    if (obj instanceof Date) {
+        return new Date(obj.getTime()) as unknown as T;
     }
-    protected render() {
-        if (this._root.loop) {
-            throw new Error("root element can not be a loop");
-        } else if (this._root.condition) {
-            throw new Error("root element can not be a condition");
+
+    if (obj instanceof Array) {
+        return obj.map((item) => deepClone(item)) as unknown as T;
+    }
+
+    const clone: any = {};
+    for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            clone[key] = deepClone(obj[key]);
         }
-        if (!this._html) {
-            this._html = this._root.init(this._context) as HTMLElement;
-            //console.log("init  render:" + this._html)
-            this._shadowRoot.appendChild(this._html);
-        } else {
-            this._root.update(this._context);
-            const elements = this._root.elements;
-            elements.clear();
-            //console.log("update render:", html);
+    }
+
+    return clone;
+}
+
+// 工具函数：获取URL参数
+export function getUrlParams(): { [key: string]: string } {
+    const params: { [key: string]: string } = {};
+    const query = window.location.search.substr(1);
+    const pairs = query.split('&');
+    
+    for (const pair of pairs) {
+        const [key, value] = pair.split('=');
+        if (key) {
+            params[key] = decodeURIComponent(value || '');
         }
-        return this._html;
     }
-    protected abstract buildContext(): RenderContext;
-    protected abstract bindStyle(style: HTMLStyleElement): void;
-    protected abstract buildTemplate(): string;
-    protected setVariable(name: string, val: any) {
-        this._context.setVariable(name, val);
+    
+    return params;
+}
+
+// 工具函数：设置URL参数
+export function setUrlParams(params: { [key: string]: string }): void {
+    const searchParams = new URLSearchParams(window.location.search);
+    
+    for (const [key, value] of Object.entries(params)) {
+        searchParams.set(key, value);
     }
-    protected getVariable(name: string) {
-        return this._context.getVariable(name);
+    
+    const newUrl = window.location.pathname + '?' + searchParams.toString();
+    window.history.replaceState({}, document.title, newUrl);
+}
+
+// 工具函数：检测是否在移动设备上
+export function isMobile(): boolean {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// 工具函数：平滑滚动到元素
+export function scrollToElement(element: HTMLElement | string, offset: number = 0): void {
+    let targetElement: HTMLElement | null = null;
+    
+    if (typeof element === 'string') {
+        targetElement = document.querySelector(element);
+    } else {
+        targetElement = element;
     }
-    protected setData(params: any) {
-        if (!this._context) {
-            throw new Error("context is empty!");
-        }
-        if (typeof params != 'object') {
-            throw new Error("params is not Object!");
-        }
-        const context = this._context;
-        for (const item of Object.entries(params)) {
-            const key = item[0];
-            const value = item[1];
-            context.setVariable(key, value);
-        }
-        this.render();
-    }
-    protected findSelector(selector: string) {
-        return this._html?.querySelector(selector);
-    }
-    protected findSelectorAll(selector: string) {
-        return this._html?.querySelectorAll(selector);
-    }
-    protected parseVariable(value: string) {
-        if (value == 'undefined' || value == 'null') {
-            return null;
-        }
-        return value;
-    }
-    connectedCallback() {
-        this.render();
+    
+    if (targetElement) {
+        const rect = targetElement.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const top = rect.top + scrollTop - offset;
+        
+        window.scrollTo({
+            top: top,
+            behavior: 'smooth'
+        });
     }
 }
 
-// 辅助函数：读取XML内容
-function readXML(template: string): any {
-    // 这里应该是一个XML解析函数的实现
-    // 为了简化示例，我们返回一个模拟对象
-    return { name: 'div', attributes: {}, children: [] };
+// 工具函数：生成唯一ID
+export function generateId(prefix: string = ''): string {
+    return prefix + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+// 工具函数：检查是否为空
+export function isEmpty(value: any): boolean {
+    if (value === null || value === undefined) {
+        return true;
+    }
+    if (typeof value === 'string' && value.trim() === '') {
+        return true;
+    }
+    if (Array.isArray(value) && value.length === 0) {
+        return true;
+    }
+    if (typeof value === 'object' && Object.keys(value).length === 0) {
+        return true;
+    }
+    return false;
+}
+
+// 工具函数：防抖渲染
+export function debounceRender(app: App, delay: number = 30): Function {
+    return debounce(() => {
+        app.render();
+    }, delay);
 }
