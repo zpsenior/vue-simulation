@@ -45,8 +45,7 @@ export abstract class HTMLPanel extends HTMLBase {
                 -moz-osx-font-smoothing: grayscale;
             }
             .icon-panel-close:before {
-                content: "\e695";
-            }`;
+                content: "\e695";`;
     }
     protected buildContext(): RenderContext {
         const vars = new Map();
