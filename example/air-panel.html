@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面板演示</title>
+    <link rel="stylesheet" href="./style.css">
+    <!-- 加载编译后的库文件 -->
+    <script src="./index.js"></script>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        #app {
+            width: 100vw;
+            display: flex;
+            flex-wrap: wrap;
+            flex-direction: row;
+            justify-content: flex-start;
+            align-items: flex-start;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+    </div>
+    <script>
+        const app = vs.createApp({
+            createComponents: ['air-panel'],
+            template: `<vs-air-panel v-for="item in cards" :key="item.key" :title="item.title" :desc="item.desc"
+            :unit="item.unit" :levels="item.levels" :scales="item.scales" :percent="item.percent" :value="item.value">
+        </vs-air-panel>`,
+            data() {
+                return {
+                    cards: [
+                        {
+                            key: "TEMP",
+                            title: "TEMP",
+                            desc: "温度",
+                            value: 0,
+                            unit: "°C",
+                            levels: ["冷", "舒适", "暖", "热"],
+                            scales: [18, 23, 28],
+                            percent: 42
+                        },
+                        {
+                            key: "HUMI",
+                            title: "HUMI",
+                            desc: "湿度",
+                            value: 0,
+                            unit: "%RH",
+                            levels: ["干燥", "舒适", "湿润", "潮湿"],
+                            scales: [30, 60, 80],
+                            percent: 67
+                        },
+                        {
+                            key: "O2",
+                            title: "O2",
+                            desc: "氧气",
+                            value: 0.00,
+                            unit: "%VOL",
+                            levels: ["缺氧", "正常", "富氧"],
+                            scales: [19.5, 23.5],
+                            percent: 23
+                        },
+                        {
+                            key: "TVOC",
+                            title: "TVOC",
+                            desc: "挥发性有机物",
+                            value: 20,
+                            unit: "μg/m³",
+                            levels: ["达标", "超标"],
+                            scales: [600],
+                            percent: 89
+                        },
+                        {
+                            key: "PM0.3",
+                            title: "PM0.3",
+                            desc: "入肺颗粒物",
+                            value: 2,
+                            unit: "μg/m³",
+                            levels: ["达标", "超标"],
+                            scales: [3],
+                            percent: 14
+                        },
+                        {
+                            key: "PM0.5",
+                            title: "PM0.5",
+                            desc: "可入肺颗粒物",
+                            value: 0,
+                            unit: "μg/m³",
+                            levels: ["达标", "超标"],
+                            scales: [35],
+                            percent: 56
+                        },
+                        {
+                            key: "PM1.0",
+                            title: "PM1.0",
+                            desc: "细颗粒物",
+                            value: 0,
+                            unit: "μg/m³",
+                            levels: ["达标", "超标"],
+                            scales: [50],
+                            percent: 32
+                        }
+                    ]
+                };
+            },
+            created() {
+                // 模拟数据变化
+                setInterval(() => {
+                    const index = Math.floor(Math.random() * this.cards.length);
+                    const newPercent = Math.max(0, Math.min(100, this.cards[index].percent + (Math.random() * 10 - 5)));
+                    this.cards[index].percent = Math.round(newPercent);
+                    this.setVariable('cards', this.cards, true);
+                }, 3000);
+            }
+        });
+        app.mount('#app');
+    </script>
+</body>
+</html>

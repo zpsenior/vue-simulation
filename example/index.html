@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue Simulation 示例集</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+        
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .example-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .example-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .example-header {
+            padding: 20px;
+            background: #3498db;
+            color: white;
+        }
+        
+        .example-card:nth-child(2n) .example-header {
+            background: #2ecc71;
+        }
+        
+        .example-card:nth-child(3n) .example-header {
+            background: #e74c3c;
+        }
+        
+        .example-card:nth-child(4n) .example-header {
+            background: #9b59b6;
+        }
+        
+        .example-card:nth-child(5n) .example-header {
+            background: #f39c12;
+        }
+        
+        .example-card:nth-child(6n) .example-header {
+            background: #1abc9c;
+        }
+        
+        .example-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Vue Simulation 示例集</h1>
+            <p class="subtitle">一个轻量级的Vue模拟库，提供组件化开发体验</p>
+        </header>
+        
+        <div class="examples-grid">
+            <div class="example-card" onclick="window.location.href='count.html'">
+                <div class="example-header">
+                    <div class="example-title">计数器示例</div>
+                </div>
+                <div style="padding: 20px;">
+                    <p>基础的数据绑定和事件处理示例</p>
+                </div>
+            </div>
+            
+            <div class="example-card" onclick="window.location.href='color.html'">
+                <div class="example-header">
+                    <div class="example-title">颜色选择面板</div>
+                </div>
+                <div style="padding: 20px;">
+                    <p>可拖拽的颜色选择面板示例</p>
+                </div>
+            </div>
+            
+            <div class="example-card" onclick="window.location.href='tab-panel.html'">
+                <div class="example-header">
+                    <div class="example-title">Tab面板</div>
+                </div>
+                <div style="padding: 20px;">
+                    <p>多标签切换面板示例</p>
+                </div>
+            </div>
+            
+            <div class="example-card" onclick="window.location.href='air-panel.html'">
+                <div class="example-header">
+                    <div class="example-title">空调面板</div>
+                </div>
+                <div style="padding: 20px;">
+                    <p>模拟空调控制面板示例</p>
+                </div>
+            </div>
+            
+            <div class="example-card" onclick="window.location.href='echarts.html'">
+                <div class="example-header">
+                    <div class="example-title">ECharts图表</div>
+                </div>
+                <div style="padding: 20px;">
+                    <p>集成ECharts图表的示例</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模板示例</title>
+    <script src="./index.js"></script>
+</head>
+<body>
+    <!-- 定义组件模板 -->
+    <template id="card-item">
+    <style>
+        :host {
+            width: 100%;
+        }
+
+        .item {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            align-items: center;
+            background-color: white;
+            border-top: #4489FF 1px solid;
+            width: 100%;
+            min-height: 17px;
+            position: relative;
+        }
+
+        .item>.label {
+            font-size: 12px;
+            font-weight: 700;
+            padding-left: 5px;
+        }
+
+        .item>.name {
+            font-size: 12px;
+            font-weight: 400;
+            padding-left: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item>.dlg {
+            position: absolute;
+            min-width: 200px;
+            min-height: 50px;
+            z-index: 1000;
+            background-color: white;
+            border: #4489FF 1px solid;
+            border-radius: 5px;
+            padding: 5px;
+        }
+    </style>
+    <props>
+        <prop name="label" />
+        <prop name="name" />
+    </props>
+    <template>
+        <div class="item">
+            <div class="label">{{label}}</div>
+            <div class="name">{{name}}</div>
+            <div class="dlg" style="display:none">
+                <slot />
+            </div>
+        </div>
+    </template>
+</template>
+
+<template id="card">
+    <props>
+        <prop name="title" />
+        <prop name="dom" />
+    </props>
+    <template>
+        <div class="card">
+            <div :class="'head ' + dom">
+                <span class="title">{{title}}</span>
+            </div>
+            <div class="items">
+                <slot />
+            </div>
+        </div>
+    </template>
+    <style>
+        .enum {
+            background-color: darkgreen;
+        }
+
+        .entity {
+            background-color: burlywood;
+        }
+
+        .dto {
+            background-color: chocolate;
+        }
+
+        .card {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+            border-top: #4489FF 1px solid;
+            border-left: #4489FF 1px solid;
+            border-right: #4489FF 1px solid;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+            margin: 5px;
+            width: 200px;
+        }
+    </style>
+</template>
+
+<!-- 使用组件 -->
+<div id="app">
+    <template>
+        <vs-card template="card" dom="enum" title="示例卡片">
+            <vs-card-item template="card-item" label="标签1" name="值1"></vs-card-item>
+            <vs-card-item template="card-item" label="标签2" name="值2"></vs-card-item>
+            <vs-card-item template="card-item" label="标签3" name="值3"></vs-card-item>
+        </vs-card>
+    </template>
+</div>
+
+<script>
+    const app = vs.createApp({
+        createComponents: ['card', 'card-item']
+    });
+    app.mount('#app');
+</script>
+</body>
+</html>

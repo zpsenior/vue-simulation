@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>颜色选择面板 - 可拖拽</title>
+    <script src="./index.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            height: 100vh;
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-header {
+            padding: 20px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .app-header h1 {
+            color: white;
+            font-size: 28px;
+            font-weight: 600;
+            margin: 0;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .app-content {
+            flex: 1;
+            position: relative;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .color-panel-wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            transition: transform 0.3s ease;
+        }
+
+        .color-panel-wrapper:active {
+            cursor: grabbing;
+        }
+
+        /* 拖拽提示信息 */
+        .drag-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .drag-hint:hover {
+            opacity: 1;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .app-header h1 {
+                font-size: 24px;
+            }
+
+            .color-panel-wrapper {
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="app-header">
+            <h1>颜色选择面板 - 可拖拽</h1>
+        </div>
+        <div class="app-content">
+            <div id="app" class="color-panel-wrapper">
+                <template>
+                    <div :style="{ backgroundColor: currentColor, width: '300px', height: '300px', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)', transition: 'all 0.3s ease' }">
+                        <div style="padding: 20px; color: white; text-align: center;">
+                            <h2>{{ currentColor }}</h2>
+                            <div style="margin-top: 20px;">
+                                <button @click="randomColor" style="background: rgba(255, 255, 255, 0.2); border: 1px solid white; border-radius: 4px; padding: 8px 16px; color: white; cursor: pointer;">随机颜色</button>
+                            </div>
+                            <div style="margin-top: 40px; font-size: 14px;">点击面板可以拖拽移动</div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="drag-hint">拖动面板可改变位置</div>
+        </div>
+    </div>
+    <script>
+        const app = vs.createApp({
+            data() {
+                return {
+                    currentColor: '#3498db'
+                }
+            },
+            methods: {
+                randomColor() {
+                    const colors = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f39c12', '#1abc9c'];
+                    const randomIndex = Math.floor(Math.random() * colors.length);
+                    this.setVariable('currentColor', colors[randomIndex], true);
+                }
+            },
+            created() {
+                // 添加拖拽功能
+                const panel = document.querySelector('.color-panel-wrapper');
+                let isDragging = false;
+                let offsetX, offsetY;
+                
+                panel.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    offsetX = e.clientX - panel.getBoundingClientRect().left;
+                    offsetY = e.clientY - panel.getBoundingClientRect().top;
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    const content = document.querySelector('.app-content');
+                    const contentRect = content.getBoundingClientRect();
+                    
+                    let newX = e.clientX - contentRect.left - offsetX;
+                    let newY = e.clientY - contentRect.top - offsetY;
+                    
+                    // 限制在content区域内
+                    newX = Math.max(0, Math.min(newX, contentRect.width - panel.offsetWidth));
+                    newY = Math.max(0, Math.min(newY, contentRect.height - panel.offsetHeight));
+                    
+                    panel.style.transform = `translate(${newX}px, ${newY}px)`;
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                });
+            }
+        });
+        app.mount('#app');
+    </script>
+</body>
+
+</html>

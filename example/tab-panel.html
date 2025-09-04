@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tab面板演示</title>
+    <link rel="stylesheet" href="./style.css">
+    <!-- 加载编译后的库文件 -->
+    <script src="./index.js"></script>
+    <style>
+        #app {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+            width: 100%;
+        }
+
+        .tabs {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            align-items: center;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+
+        .bar {
+            height: 100%;
+            flex: 1;
+            border-bottom: #4489FF 1px solid;
+        }
+
+        .tabs .tab {
+            font-weight: 400;
+            border-bottom: #4489FF 1px solid;
+            padding-left: 5px;
+            padding-right: 5px;
+        }
+
+        .tabs .active {
+            font-weight: bold;
+            color: blue;
+            border-top: #4489FF 1px solid;
+            border-left: #4489FF 1px solid;
+            border-right: #4489FF 1px solid;
+            border-bottom: white 0 solid;
+            border-radius: 5px 5px 0 0;
+        }
+
+        .tab-panel {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .dialog {
+            position: absolute;
+        }
+    </style>
+</head>
+
+<body style="margin: 0;width: 100vw;">
+    <div id="app">
+        <div class="tabs">
+            <div :class="['tab', {'active': activeTab == 0}]" @click="switchTab(0)">枚举</div>
+            <div :class="['tab', {'active': activeTab == 1}]" @click="switchTab(1)">实体</div>
+            <div :class="['tab', {'active': activeTab == 2}]" @click="switchTab(2)">DTO</div>
+            <div class="bar" v-html="true">&nbsp;</div>
+        </div>
+        <div class="tab-panel" v-if="activeTab === 0" @click="closeDialog">
+            <vs-block template="card" v-for="item in enums" dom="enum" :title="item.description">
+                <vs-block template="card-item" v-for="it in item.items" :label="it.description"
+                    :name="it.name"></vs-block>
+            </vs-block>
+        </div>
+        <div class="tab-panel" v-else-if="activeTab === 1" @click="closeDialog">
+            <vs-block template="card" v-for="(item, index) in entities" dom="entity" :title="item.description">
+                <vs-block template="card-item" v-for="it in item.fields" :label="it.description"
+                    :name="it.name"></vs-block>
+            </vs-block>
+        </div>
+        <div class="tab-panel" v-else-if="activeTab === 2" @click="closeDialog">
+            <vs-block template="card" v-for="(item, index) in dtos" dom="dto" :title="item.name">
+                <vs-block template="card-item" v-for="it in item.relations" :label="it.name" :name="it.type"
+                    @click="showDialog(it.join, $event)"></vs-block>
+            </vs-block>
+        </div>
+        <vs-card class="dialog" v-if="current != null" :style="pos" dom="entity"
+            :title="current.description">
+            <vs-card-item v-for="it in current.fields" :label="it.description"
+                :name="it.name"></vs-card-item>
+        </vs-card>
+    </div>
+    <script>
+        const app = vs.createApp({
+            createComponents: ['card', 'card-item'],
+            data() {
+                return {
+                    activeTab: 0,
+                    current: null,
+                    pos: { display: 'none' },
+                    enums: [
+                        {
+                            description: '颜色枚举',
+                            items: [
+                                { name: 'RED', description: '红色' },
+                                { name: 'GREEN', description: '绿色' },
+                                { name: 'BLUE', description: '蓝色' }
+                            ]
+                        },
+                        {
+                            description: '状态枚举',
+                            items: [
+                                { name: 'ACTIVE', description: '活跃' },
+                                { name: 'INACTIVE', description: '非活跃' },
+                                { name: 'DELETED', description: '已删除' }
+                            ]
+                        }
+                    ],
+                    entities: [
+                        {
+                            description: '用户',
+                            fields: [
+                                { name: 'id', description: 'ID' },
+                                { name: 'name', description: '姓名' },
+                                { name: 'age', description: '年龄' }
+                            ]
+                        },
+                        {
+                            description: '订单',
+                            fields: [
+                                { name: 'id', description: 'ID' },
+                                { name: 'userId', description: '用户ID' },
+                                { name: 'amount', description: '金额' },
+                                { name: 'status', description: '状态' }
+                            ]
+                        }
+                    ],
+                    dtos: [
+                        {
+                            name: '用户订单DTO',
+                            relations: [
+                                { name: '用户', type: 'User', join: 0 },
+                                { name: '订单', type: 'Order', join: 1 }
+                            ]
+                        },
+                        {
+                            name: '统计DTO',
+                            relations: [
+                                { name: '用户统计', type: 'UserStats', join: 0 },
+                                { name: '订单统计', type: 'OrderStats', join: 1 }
+                            ]
+                        }
+                    ]
+                };
+            },
+            methods: {
+                switchTab(index) {
+                    this.setVariable('activeTab', index, true);
+                },
+                showDialog(index, event) {
+                    event.stopPropagation();
+                    const entity = this.entities[index];
+                    this.setVariable('current', entity, true);
+                    const rect = event.target.getBoundingClientRect();
+                    this.setVariable('pos', {
+                        left: (rect.left + rect.width) + 'px',
+                        top: rect.top + 'px',
+                        display: 'block'
+                    }, true);
+                },
+                closeDialog() {
+                    this.setVariable('current', null, true);
+                    this.setVariable('pos', { display: 'none' }, true);
+                }
+            }
+        });
+        app.mount('#app');
+    </script>
+</body>
+</html>
